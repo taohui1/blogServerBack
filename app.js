@@ -4,40 +4,43 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+
 const session = require('express-session')
+const redisStroe = require('connect-redis')(session)
 
 var user = require('./routes/user');
 var blog = require('./routes/blog');
 
 var app = express();
 
-// view engine setup
-// app.set('views', path.join(__dirname, 'views'));
-// app.set('view engine', 'jade');
-
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-//session密码验证
+
+const redisClint = require('./db/redis')
+const sessionStore = new redisStroe({
+  client: redisClint
+})
 app.use(session({
   secret: 'jdkw#4566',
   cookie: {
-    path: '/',
-    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000
-  }
+  },
+  store: sessionStore
 }))
 
-app.all('*', function (req, res, next) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader('Access-Control-Allow-Headers', 'Content-type');
-  res.setHeader("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS,PATCH");
-  res.setHeader('Access-Control-Max-Age', 1728000);//预请求缓存20天
-  next();
-});
-app.use('/', blog);
-app.use('/user', user);
+// app.all('*', function (req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "http://localhost:8081");
+//   res.header("Access-Control-Allow-Credentials", "true");
+//   res.header('Access-Control-Allow-Headers', 'Content-type');
+//   res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS,PATCH");
+//   res.setHeader('Access-Control-Max-Age', 1728000);//预请求缓存20天
+//   next();
+// });
+
+app.use('/api/blog', blog);
+app.use('/api/user', user);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
